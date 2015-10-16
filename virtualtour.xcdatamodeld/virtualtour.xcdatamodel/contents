@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="8195" systemVersion="14F27" minimumToolsVersion="Automatic">
+    <entity name="ImageEntity" representedClassName="ImageEntity" syncable="YES">
+        <attribute name="image" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="imageToPin" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PinEntity" inverseName="pinToImage" inverseEntity="PinEntity" syncable="YES"/>
+    </entity>
+    <entity name="PinEntity" representedClassName="PinEntity" syncable="YES">
+        <attribute name="date" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="id" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <relationship name="pinToImage" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ImageEntity" inverseName="imageToPin" inverseEntity="ImageEntity" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="ImageEntity" positionX="-2" positionY="47" width="128" height="88"/>
+        <element name="PinEntity" positionX="-333" positionY="18" width="128" height="118"/>
+    </elements>
+</model>
