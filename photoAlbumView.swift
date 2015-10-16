@@ -329,9 +329,10 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
         } else {
              print("do batch")
             self.gridImage.performBatchUpdates({ () -> Void in
-                for operation: NSBlockOperation in self.blockOperations {
-                    operation.start()
-                }
+                self.blockoperation.start()
+//                for operation: NSBlockOperation in self.blockOperations {
+//                    operation.start()
+//                }
                 }, completion: nil)
         }
     }
