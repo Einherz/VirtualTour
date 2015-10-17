@@ -25,6 +25,8 @@ class travelLocationMap: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
     var editFlag:Bool = false
     
     var position: PinEntity!
+    var imgLocation:PinEntity!
+    
     
     var annotations = [myAnnotation]()
     
@@ -182,19 +184,32 @@ class travelLocationMap: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
             print("error")
         }
         
-        print(fetchedResultsController.fetchedObjects!)
-        
         if(self.editFlag){
-        
             for myPin in fetchedResultsController.fetchedObjects!
             {
                 print("delete")
                 let pin = myPin as! PinEntity
+                self.imgLocation = fetchedResultsController.fetchedObjects?.first as! PinEntity
+                
+                fetchedResultsControllerImage.fetchRequest.predicate = NSPredicate(format: "imageToPin == %@", self.imgLocation)
+                do{
+                    try self.fetchedResultsControllerImage.performFetch()
+                } catch {
+                    print("error")
+                }
+                
+                for myImage in self.fetchedResultsControllerImage.fetchedObjects!
+                {
+                  let imageDB = myImage as! ImageEntity
+                  dbConnector.Caches.imageCache.clearImage(imageDB.image)
+                }
                 sharedContext.deleteObject(pin)
+                
                 dbConnector.sharedInstance().saveContext()
             }
             
             self.mapView.removeAnnotation(view.annotation!)
+            self.annotations.removeAll()
             
         } else {
             //Go to FlickrAPI
@@ -202,6 +217,7 @@ class travelLocationMap: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
             let storyboard = UIStoryboard(name: "Main", bundle: nil)
             let viewController = storyboard.instantiateViewControllerWithIdentifier("imageView") as! photoAlbumView
             let imageToPin = fetchedResultsController.fetchedObjects?.first as! PinEntity
+            
             
             viewController.currentAnnotation = (view.annotation?.coordinate)!
             viewController.imageToPin = imageToPin
@@ -240,7 +256,23 @@ lazy var fetchedResultsController: NSFetchedResultsController = {
     return fetchedResultsController
     
     }()
-
+    
+    lazy var fetchedResultsControllerImage: NSFetchedResultsController = {
+        
+        let fetchRequest = NSFetchRequest(entityName: "ImageEntity")
+        
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        //fetchRequest.predicate = NSPredicate(format: "imageToPin == %@", self.imgLocation)
+        
+        let fetchedResultsControllerImage = NSFetchedResultsController(fetchRequest: fetchRequest,
+            managedObjectContext: self.sharedContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil)
+        
+        return fetchedResultsControllerImage
+        
+        }()
+    
     var sharedContext: NSManagedObjectContext {
         return dbConnector.sharedInstance().managedObjectContext
     }
