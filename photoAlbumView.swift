@@ -24,7 +24,7 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
     var countImg = 0
     var indexArray = [NSIndexPath]()
     var blockoperation:NSBlockOperation = NSBlockOperation()
-    var blockOperations: [NSBlockOperation] = []
+    //var blockOperations: [NSBlockOperation] = []
     var shouldReloadCollectionView:Bool = false
 
     
@@ -139,20 +139,6 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
     @IBAction func getNewImages(sender: UIButton) {
         //remove all coredata in this position
         print("load images")
-       // fetchedResultsController
-//        let fetchRequest = NSFetchRequest(entityName: "ImageEntity")
-//        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-////        let imageLoader = imageAsync()
-////        
-//        do {
-//            try self.sharedContext.executeRequest(deleteRequest)
-//            dbConnector.sharedInstance().saveContext()
-//            try self.sharedContext.save()
-//            print("delete")
-//        } catch let error as NSError {
-////            // TODO: handle the error
-//            print(error.localizedDescription)
-//        }
         
         for myImg in fetchedResultsController.fetchedObjects!
         {
@@ -161,7 +147,6 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
             self.sharedContext.deleteObject(img)
         }
         dbConnector.sharedInstance().saveContext()
-        
 
         print("after delete data : \(fetchedResultsController.fetchedObjects?.count)")
         
@@ -257,7 +242,7 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
         print("start operation")
         shouldReloadCollectionView = false
         self.blockoperation = NSBlockOperation.init()
-        blockOperations.removeAll(keepCapacity: false)
+       // blockOperations.removeAll(keepCapacity: false)
     }
     
     
@@ -297,23 +282,7 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
             self.blockoperation.addExecutionBlock({ () -> Void in
                 self.gridImage.reloadItemsAtIndexPaths([indexPath!])
             })
-//                let cell = gridImage.cellForItemAtIndexPath(indexPath!) as! TaskCancelingCollection
-//            cell.backgroundView = UIImageView(image: UIImage(named: "human"))
-//            
-//            if(cell.selected){
-//                cell.contentView.backgroundColor = UIColor.whiteColor().colorWithAlphaComponent(0.5)
-//            } else {
-//                cell.contentView.backgroundColor = UIColor.clearColor()
-//            }
-//            
-//            let ImageData = fetchedResultsController.objectAtIndexPath(indexPath!) as! ImageEntity
-//            
-//            let imageLoader = imageAsync()
-//            imageLoader.loadImage(ImageData) { (imageCallBack,imgNo) -> () in
-//                dispatch_async(dispatch_get_main_queue(), {
-//                    cell.backgroundView = UIImageView(image: imageCallBack)
-//                })
-//            }
+
         case .Move:
             print("move")
             self.blockoperation.addExecutionBlock({ () -> Void in
@@ -330,9 +299,6 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
              print("do batch")
             self.gridImage.performBatchUpdates({ () -> Void in
                 self.blockoperation.start()
-//                for operation: NSBlockOperation in self.blockOperations {
-//                    operation.start()
-//                }
                 }, completion: nil)
         }
     }
