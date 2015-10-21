@@ -27,11 +27,10 @@ let LON_MAX = 180.0
 class flickrAPI{
     
     func findImageByLocation(lat:Double, long:Double, callback:(jsonData:NSArray) -> ()){
-        
         let methodArguments = [
             "method": METHOD_NAME,
             "api_key": API_KEY,
-            "accuracy": String(arc4random_uniform(15)),
+            "page": String(arc4random_uniform(1000)),
             "bbox": createBoundingBoxString(lat, long:long),
             "safe_search": SAFE_SEARCH,
             "extras": EXTRAS,
@@ -55,7 +54,6 @@ class flickrAPI{
 
             do {
                 let parsedResult = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.AllowFragments) as! NSDictionary
-                
                 
                 if let photosDictionary = parsedResult.valueForKey("photos") as? [String:AnyObject] {
                     
