@@ -42,7 +42,9 @@ struct imageStruct {
             return dbConnector.Caches.imageCache.imageWithIdentifier(image)
         }
         set(cache) {
-            dbConnector.Caches.imageCache.storeImage(cache, withIdentifier: image)
+            if(image != nil){
+                dbConnector.Caches.imageCache.storeImage(cache, withIdentifier: image)
+            }
         }
     }
     
