@@ -24,7 +24,7 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
     var countImg = 0
     var indexArray = [NSIndexPath]()
     var blockoperation:NSBlockOperation = NSBlockOperation()
-    //var blockOperations: [NSBlockOperation] = []
+    var blockOperations: [NSBlockOperation] = []
     var shouldReloadCollectionView:Bool = false
 
     
@@ -52,7 +52,6 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        
         do{
             try self.fetchedResultsController.performFetch()
         } catch {
@@ -75,15 +74,22 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
                     if(jsonData.count > 0){
                         self.gridImage.hidden = false
                     for photos in jsonData {
-                        let imageDB = ImageEntity(dictionary: photos as! [String : AnyObject], context: self.sharedContext)
-                        imageDB.imageToPin = self.imageToPin
-                        dispatch_async(dispatch_get_main_queue(), {
-                            //self.gridImage.reloadData()
-                            self.newPicBtn.enabled = true
+                        self.sharedContext.performBlockAndWait({ () -> Void in
+                            let imageDB = ImageEntity(dictionary: photos as! [String : AnyObject], context: self.sharedContext)
+                            imageDB.imageToPin = self.imageToPin
+                            
                         })
-                        
-                        //dbConnector.sharedInstance().saveContext()
                         }
+                        self.sharedContext.performBlockAndWait({ () -> Void in
+                         dbConnector.sharedInstance().saveContext() })
+
+                          dispatch_async(dispatch_get_main_queue(), {
+                        self.newPicBtn.enabled = true
+                            })
+        
+//                       self.sharedContext.performBlockAndWait({ () -> Void in
+//                        
+//                        })
                     } else { //in case no images at that pin
                         dispatch_async(dispatch_get_main_queue(), {
                             self.gridImage.hidden = true
@@ -124,10 +130,14 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
     @IBAction func removeImages(sender: UIButton) {
         print("remove image")
         for imgPos in indexArray{
-            let ImageData = fetchedResultsController.objectAtIndexPath(imgPos) as! ImageEntity
+            self.sharedContext.performBlockAndWait({ () -> Void in
+            let ImageData = self.fetchedResultsController.objectAtIndexPath(imgPos) as! ImageEntity
             dbConnector.Caches.imageCache.clearImage(ImageData.image)
             self.sharedContext.deleteObject(ImageData)
+            })
         }
+        dbConnector.sharedInstance().saveContext()
+
         indexArray.removeAll()
         
         //Hide remove image
@@ -136,18 +146,38 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
         self.newPicBtn.hidden = false
         self.newPicBtn.enabled = true
     }
+    
     @IBAction func getNewImages(sender: UIButton) {
         //remove all coredata in this position
         print("load images")
+        let fetchRequest = NSFetchRequest(entityName: "ImageEntity")
+        fetchRequest.includesPropertyValues = false
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
         
-        for myImg in fetchedResultsController.fetchedObjects!
+        for myImg in self.fetchedResultsController.fetchedObjects!
         {
+            self.sharedContext.performBlockAndWait({ () -> Void in
             let img = myImg as! ImageEntity
-            dbConnector.Caches.imageCache.clearImage(img.image)
             self.sharedContext.deleteObject(img)
+            dbConnector.Caches.imageCache.clearImage(img.image)
+            dbConnector.sharedInstance().saveContext()
+            })
         }
-        dbConnector.sharedInstance().saveContext()
+        self.gridImage.reloadData()
+//        do{
+//            try self.sharedContext.save( )
+//        } catch let error as NSError {
+//            print(error.localizedDescription)
+//        }
+        
+//        do{
+//            try self.sharedContext.executeRequest(deleteRequest)
+//        } catch let error as NSError {
+//            print(error.localizedDescriptio  n)
+//            }
+           // dbConnector.sharedInstance().saveContext()
 
+        
         print("after delete data : \(fetchedResultsController.fetchedObjects?.count)")
         
         //Load new Images//
@@ -156,26 +186,30 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
             if(jsonData.count > 0){
                 self.gridImage.hidden = false
                 for photos in jsonData {
-                    let imageDB = ImageEntity(dictionary: photos as! [String : AnyObject], context: self.sharedContext)
-                    imageDB.imageToPin = self.imageToPin
-                    dbConnector.sharedInstance().saveContext()
+                    self.sharedContext.performBlockAndWait({ () -> Void in
+                        let imageDB = ImageEntity(dictionary: photos as! [String : AnyObject], context: self.sharedContext)
+                        imageDB.imageToPin = self.imageToPin
+                        
+                    })
                 }
-                print("after loading data : \(self.fetchedResultsController.fetchedObjects?.count)")
-//                dispatch_async(dispatch_get_main_queue(), {
-//                    self.gridImage.reloadData()
-//                })
+                self.sharedContext.performBlockAndWait({ () -> Void in
+                    dbConnector.sharedInstance().saveContext() })
                 
-            } else {
+                dispatch_async(dispatch_get_main_queue(), {
+                    self.newPicBtn.enabled = true
+                })
+            } else { //in case no images at that pin
                 dispatch_async(dispatch_get_main_queue(), {
                     self.gridImage.hidden = true
                 })
             }
         }
-        
     }
     
     
    // Mark Collection view
+    
+    
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let collectionSectionInfo = self.fetchedResultsController.sections![section] as NSFetchedResultsSectionInfo
         self.sectionInfo = collectionSectionInfo.numberOfObjects
@@ -195,15 +229,19 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
         } else {
            cell.contentView.backgroundColor = UIColor.clearColor()
         }
-        
-        let ImageData = fetchedResultsController.objectAtIndexPath(indexPath) as! ImageEntity
-        
-        let imageLoader = imageAsync()
-        imageLoader.loadImage(ImageData) { (imageCallBack,imgNo) -> () in
+
+        if let ImageData = fetchedResultsController.objectAtIndexPath(indexPath) as? ImageEntity
+        {
+            let imageLoader = imageAsync()
+            imageLoader.loadImage(ImageData) { (imageCallBack,imgNo) -> () in
             dispatch_async(dispatch_get_main_queue(), {
-                 cell.backgroundView = UIImageView(image: imageCallBack)
+            cell.backgroundView = UIImageView(image: imageCallBack)
             })
         }
+        }
+                   //}
+       
+       // }
         return cell
     }
     
@@ -245,62 +283,142 @@ class photoAlbumView: UIViewController,MKMapViewDelegate, NSFetchedResultsContro
        // blockOperations.removeAll(keepCapacity: false)
     }
     
-    
-    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
         weak var collection = self.gridImage
         switch type {
         case .Insert:
+            print("insert")
+            self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                if let this = self {
+                    this.gridImage.insertSections(NSIndexSet(index: sectionIndex))
+                }}))
+            
+//            self.blockoperation.addExecutionBlock({ () -> Void in
+//                collection?.insertSections(NSIndexSet(index: sectionIndex))
+//            })
+            
+        case .Delete:
+            print("delete")
+            self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                if let this = self {
+                    this.gridImage.deleteSections(NSIndexSet(index: sectionIndex))
+                }}))
+            
+//            self.blockoperation.addExecutionBlock({ () -> Void in
+//                collection?.deleteSections(NSIndexSet(index: sectionIndex))
+//            })
+           
+        case .Update:
+            print("update")
+            self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                if let this = self {
+                    this.gridImage.reloadSections(NSIndexSet(index: sectionIndex))
+                }}))
+            
+//            self.blockoperation.addExecutionBlock({ () -> Void in
+//                collection?.reloadSections(NSIndexSet(index: sectionIndex))
+//            })
+            
+        case .Move:
+            print("move")
+            
+        }
+    }
+    
+    
+    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
+        weak var collection = self.gridImage
+
+        
+        switch type {
+        case .Insert:
                 print("insert")
-                print(self.gridImage.numberOfSections())
-                print(self.gridImage.numberOfItemsInSection((newIndexPath?.section)!))
-                if(self.gridImage.numberOfSections() > 0){
-                    if(self.gridImage.numberOfItemsInSection((newIndexPath?.section)!) == 0){
+               // print(collection!.numberOfItemsInSection((newIndexPath?.section)!))
+                if(collection!.numberOfSections() > 0){
+                    if(collection!.numberOfItemsInSection((newIndexPath?.section)!) == 0){
                         shouldReloadCollectionView = true
                     } else {
-                        self.blockoperation.addExecutionBlock({ () -> Void in
-                            self.gridImage.insertItemsAtIndexPaths([newIndexPath!])
-                        })
-                       }
+                        self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                            if let this = self {
+                                this.gridImage.insertItemsAtIndexPaths([newIndexPath!])
+                            }}))
+                        
+//                        self.blockoperation.addExecutionBlock({ () -> Void in
+//                            self.gridImage.insertItemsAtIndexPaths([newIndexPath!])
+//                        })
+                    }
                 } else {
                    shouldReloadCollectionView = true
                 }
             
         case .Delete:
             print("delete")
-            print(self.gridImage.numberOfItemsInSection((indexPath?.section)!))
-            if(self.gridImage.numberOfItemsInSection((indexPath?.section)!) == 1){
+            //print(self.gridImage.numberOfItemsInSection((indexPath?.section)!))
+            if(collection!.numberOfItemsInSection((indexPath?.section)!) == 1){
                 shouldReloadCollectionView = true
             } else {
-                self.blockoperation.addExecutionBlock({ () -> Void in
-                    self.gridImage.deleteItemsAtIndexPaths([indexPath!])
-                })
+                self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                    if let this = self {
+                        this.gridImage.deleteItemsAtIndexPaths([indexPath!])
+                    }}))
+                
+//                self.blockoperation.addExecutionBlock({ () -> Void in
+//                    self.gridImage.deleteItemsAtIndexPaths([indexPath!])
+//                })
             }
-            
             
         case .Update:
             print("update")
-            self.blockoperation.addExecutionBlock({ () -> Void in
-                self.gridImage.reloadItemsAtIndexPaths([indexPath!])
-            })
+            self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                if let this = self {
+                    this.gridImage.reloadItemsAtIndexPaths([indexPath!])
+                }}))
+            
+//            self.blockoperation.addExecutionBlock({ () -> Void in
+//                self.gridImage.reloadItemsAtIndexPaths([indexPath!])
+//            })
 
         case .Move:
             print("move")
-            self.blockoperation.addExecutionBlock({ () -> Void in
-                self.gridImage.moveItemAtIndexPath(indexPath!, toIndexPath: newIndexPath!)
-            })
+            self.blockOperations.append(NSBlockOperation(block: {[weak self] in
+                if let this = self {
+                    this.gridImage.moveItemAtIndexPath(indexPath!, toIndexPath: newIndexPath!)
+                }}))
+            
+//            self.blockoperation.addExecutionBlock({ () -> Void in
+//                self.gridImage.moveItemAtIndexPath(indexPath!, toIndexPath: newIndexPath!)
+//            })
         }
     }
     
     func controllerDidChangeContent(controller: NSFetchedResultsController) {
+    
         if(shouldReloadCollectionView){
-            print("do reload")
+            print("do reload Data")
             self.gridImage.reloadData()
         } else {
-             print("do batch")
-            self.gridImage.performBatchUpdates({ () -> Void in
-                self.blockoperation.start()
-                }, completion: nil)
+            //print("counting : \(self.countImg)")
+            //if(self.countImg == 50){
+                //self.countImg = 0
+                self.gridImage.performBatchUpdates({ () -> Void in
+                    for operation:NSBlockOperation in self.blockOperations{
+                        operation.start()
+                    }
+                    //self.blockoperation.start()
+                    print("done")
+                    }, completion: { (finished) -> Void in
+                        self.blockOperations.removeAll(keepCapacity: false)
+                })
+            //}
+           
         }
+    }
+    
+    deinit{
+        for operation:NSBlockOperation in blockOperations{
+            operation.cancel()
+        }
+        blockOperations.removeAll(keepCapacity: false)
     }
     
     lazy var fetchedResultsController: NSFetchedResultsController = {
