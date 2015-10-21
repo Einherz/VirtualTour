@@ -37,8 +37,10 @@ class imageAsync {
                 } else {
                     if let imgData = data {
                         let imageData = UIImage(data: imgData)
-                        let imageHolder = imgObj.cacheImg //Instantiate setter
-                        imgObj.cacheImg = imageData
+                       dbConnector.sharedInstance().managedObjectContext.performBlockAndWait({ () -> Void in
+                            let imageHolder = imgObj.cacheImg //Instantiate setter
+                            imgObj.cacheImg = imageData
+                        })
                         onComplete(imageCallBack: imageData!,imgNo: 1)
                     }
                 }
