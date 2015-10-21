@@ -69,7 +69,7 @@ class ImageCache {
         // And in documents directory
         let data = UIImageJPEGRepresentation(image!, 1.0)
             //UIImagePNGRepresentation(image!)
-        print("image save : \(path)")
+        //print("image save : \(path)")
         do{
             try data!.writeToFile(path, options: NSDataWritingOptions.DataWritingAtomic)
         } catch let error as NSError {
