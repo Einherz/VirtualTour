@@ -11,8 +11,7 @@ import MapKit
 import CoreData
 
 //Work progress
-//Choose Image Collection to clear image and data // Working
-//New Collection to wipe out core data and re-save again // Working
+//get idea try to delete image when they're not load yet
 
 class travelLocationMap: UIViewController, MKMapViewDelegate, NSFetchedResultsControllerDelegate {
     
@@ -225,22 +224,6 @@ class travelLocationMap: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
         }
        
     }
-    
-//    func controllerWillChangeContent(controller: NSFetchedResultsController) {
-//        <#code#>
-//    }
-//    
-//    func controller(controller: NSFetchedResultsController, didChangeSection sectionInfo: NSFetchedResultsSectionInfo, atIndex sectionIndex: Int, forChangeType type: NSFetchedResultsChangeType) {
-//        <#code#>
-//    }
-//    
-//    func controller(controller: NSFetchedResultsController, didChangeObject anObject: AnyObject, atIndexPath indexPath: NSIndexPath?, forChangeType type: NSFetchedResultsChangeType, newIndexPath: NSIndexPath?) {
-//        <#code#>
-//    }
-//    
-//    func controllerDidChangeContent(controller: NSFetchedResultsController) {
-//        <#code#>
-//    }
 
 lazy var fetchedResultsController: NSFetchedResultsController = {
     
